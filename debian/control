@@ -1,4 +1,4 @@
-Source: libvpl
+Source: libvpl-disp
 Section: libs
 Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
@@ -6,7 +6,8 @@ XSBC-Original-Maintainer: Timo Aaltonen <tjaalton@debian.org>
 Build-Depends: debhelper-compat (= 13),
  cmake,
  libdrm-dev,
- libva-dev,
+ libpciaccess-dev,
+ libva-dev (>= 2.17),
  libwayland-dev,
  libx11-dev,
  libx11-xcb-dev,
@@ -14,7 +15,7 @@ Build-Depends: debhelper-compat (= 13),
  libxcb-dri3-dev,
  libxcb-present-dev,
  pkg-config,
- wayland-protocols,
+ wayland-protocols
 Standards-Version: 4.6.0
 Homepage: https://github.com/intel/libvpl
 Vcs-Browser: https://salsa.debian.org/debian/onevpl
