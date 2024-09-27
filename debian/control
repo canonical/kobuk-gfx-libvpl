@@ -45,7 +45,7 @@ Package: libvpl-dev
 Architecture: amd64 x32
 Depends:
  libvpl2 (= ${binary:Version}),
- ${misc:Depends},
+ ${shlibs:Depends}, ${misc:Depends}
 Description: oneAPI Video Processing Library -- development files
  The oneAPI Video Processing Library (oneVPL) provides a single video processing
  API for encode, decode, and video processing that works across a wide range of
