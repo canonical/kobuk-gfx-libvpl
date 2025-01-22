@@ -1,3 +1,9 @@
+libvpl-disp (1:2.14.0-0ubuntu1~24.10~ppa1) oracular; urgency=medium
+
+  * Bump version to 2.14.0
+
+ -- Pavel Androniychuk <pavel.androniychuk@intel.com>  Tue, 21 Jan 2025 13:56:30 -0800
+
 libvpl-disp (1:2.13.0-0ubuntu1~24.10~ppa1) oracular; urgency=medium
 
   * Version bump to 2.13.0
