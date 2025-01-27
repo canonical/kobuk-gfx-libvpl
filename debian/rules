@@ -1,10 +1,17 @@
 #!/usr/bin/make -f
 
-
 %:
 	dh $@
 
+
 override_dh_auto_configure:
 	dh_auto_configure -- \
-                -DBUILD_EXAMPLES=ON
+		-DBUILD_EXAMPLES=ON \
+		-DVPL_INSTALL_ENVDIR=/usr/share/vpl/env \
+		-DVPL_INSTALL_MODFILEDIR=/usr/share/vpl/modulefiles
 
+override_dh_auto_install:
+	dh_auto_install
+	rm -rf debian/tmp/usr/share/doc/oneVPL/license.txt \
+		debian/tmp/usr/share/doc/oneVPL/third-party-programs.txt \
+		debian/tmp/usr/share/oneVPL/examples
