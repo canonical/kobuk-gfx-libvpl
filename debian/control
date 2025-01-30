@@ -47,3 +47,22 @@ Description: Intel Video Processing Library -- development files
   - Examples demonstrating API usage
  .
  This package includes header files and examples for development.
+
+Package: libvpl-examples
+Architecture: amd64 x32
+Depends:
+ libvpl2 (= ${binary:Version}),
+ ${misc:Depends},
+Description: Intel Video Processing Library -- example files
+ Intel Video Processing Library (Intel VPL) provides access to hardware
+ accelerated video decode, encode, and processing capabilities on Intel
+ GPUs to support AI visual inference, media delivery, cloud gaming, and virtual
+ desktop infrastructure use cases.
+ .
+ This repository contains the following components:
+ .
+  - Copies of the Intel® VPL API header files
+  - Intel VPL Dispatcher
+  - Examples demonstrating API usage
+ .
+ This package includes the example files and media needed to run them
