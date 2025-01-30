@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Timo Aaltonen <tjaalton@debian.org>
 Build-Depends: debhelper-compat (= 13),
  cmake,
+ libva-dev,
  pkgconf,
 Standards-Version: 4.7.0
 Homepage: https://github.com/intel/libvpl
