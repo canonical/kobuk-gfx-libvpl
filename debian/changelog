@@ -1,8 +1,9 @@
-libvpl-disp (1:2.14.0-1) noble; urgency=medium
+libvpl (1:2.14.0-1ubuntu1) noble; urgency=medium
  
   * Bump version to 2.14.0
   * Added libvpl-examples package for test examples
   * Updated source package name to match new Intel branding
+  * Remove unnecessary change of install location
 
  -- Shane McKee <shane.mckee@canonical.com>  Tue, 28 Jan 2025 05:15:07 +0800
 

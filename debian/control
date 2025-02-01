@@ -1,4 +1,4 @@
-Source: onevpl
+Source: libvpl
 Section: libs
 Priority: optional
 Maintainer: Timo Aaltonen <tjaalton@debian.org>
