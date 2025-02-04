@@ -1,22 +1,12 @@
-Source: libvpl-disp
+Source: libvpl
 Section: libs
 Priority: optional
-Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
-XSBC-Original-Maintainer: Timo Aaltonen <tjaalton@debian.org>
+Maintainer: Timo Aaltonen <tjaalton@debian.org>
 Build-Depends: debhelper-compat (= 13),
  cmake,
- libdrm-dev,
- libpciaccess-dev,
- libva-dev (>= 2.22),
- libwayland-dev,
- libx11-dev,
- libx11-xcb-dev,
- libxcb1-dev,
- libxcb-dri3-dev,
- libxcb-present-dev,
- pkg-config,
- wayland-protocols
-Standards-Version: 4.6.0
+ libva-dev,
+ pkgconf,
+Standards-Version: 4.7.0
 Homepage: https://github.com/intel/libvpl
 Vcs-Browser: https://salsa.debian.org/debian/onevpl
 Vcs-Git: https://salsa.debian.org/debian/onevpl.git
@@ -25,19 +15,17 @@ Rules-Requires-Root: no
 Package: libvpl2
 Architecture: amd64 x32
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: oneAPI Video Processing Library -- shared library
- The oneAPI Video Processing Library (oneVPL) provides a single video processing
- API for encode, decode, and video processing that works across a wide range of
- accelerators.
+Description: Intel Video Processing Library -- shared library
+ Intel Video Processing Library (Intel VPL) provides access to hardware
+ accelerated video decode, encode, and processing capabilities on Intel
+ GPUs to support AI visual inference, media delivery, cloud gaming, and virtual
+ desktop infrastructure use cases.
  .
- This repository contains the following components of oneVPL:
+ This repository contains the following components:
  .
-  - Copies of the oneVPL Specification API header files
-  - oneVPL dispatcher
+  - Copies of the Intel® VPL API header files
+  - Intel VPL Dispatcher
   - Examples demonstrating API usage
-  - oneVPL command line tools
- .
- This project is part of the larger oneAPI project.
  .
  This package includes the dispatcher library
 
@@ -45,19 +33,36 @@ Package: libvpl-dev
 Architecture: amd64 x32
 Depends:
  libvpl2 (= ${binary:Version}),
- ${shlibs:Depends}, ${misc:Depends}
-Description: oneAPI Video Processing Library -- development files
- The oneAPI Video Processing Library (oneVPL) provides a single video processing
- API for encode, decode, and video processing that works across a wide range of
- accelerators.
+ ${misc:Depends},
+Description: Intel Video Processing Library -- development files
+ Intel Video Processing Library (Intel VPL) provides access to hardware
+ accelerated video decode, encode, and processing capabilities on Intel
+ GPUs to support AI visual inference, media delivery, cloud gaming, and virtual
+ desktop infrastructure use cases.
  .
- This repository contains the following components of oneVPL:
+ This repository contains the following components:
  .
-  - Copies of the oneVPL Specification API header files
-  - oneVPL dispatcher
+  - Copies of the Intel® VPL API header files
+  - Intel VPL Dispatcher
   - Examples demonstrating API usage
-  - oneVPL command line tools
- .
- This project is part of the larger oneAPI project.
  .
  This package includes header files and examples for development.
+
+Package: libvpl-examples
+Architecture: amd64 x32
+Depends:
+ libvpl2 (= ${binary:Version}),
+ ${misc:Depends},
+Description: Intel Video Processing Library -- example files
+ Intel Video Processing Library (Intel VPL) provides access to hardware
+ accelerated video decode, encode, and processing capabilities on Intel
+ GPUs to support AI visual inference, media delivery, cloud gaming, and virtual
+ desktop infrastructure use cases.
+ .
+ This repository contains the following components:
+ .
+  - Copies of the Intel® VPL API header files
+  - Intel VPL Dispatcher
+  - Examples demonstrating API usage
+ .
+ This package includes the example files and media needed to run them

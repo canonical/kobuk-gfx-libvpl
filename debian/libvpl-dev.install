@@ -1,13 +1,6 @@
-etc/vpl
-usr/include/vpl/*
-usr/lib/*/cmake/vpl/*
+usr/include
+usr/lib/*/cmake
 usr/lib/*/libvpl.so
 usr/lib/*/pkgconfig/vpl.pc
-usr/share/vpl/examples
-usr/bin/01_transition_vpl
-usr/bin/hello-decode
-usr/bin/hello-encode
-usr/bin/hello-sharing-vaapi-export
-usr/bin/hello-sharing-vaapi-import
-usr/bin/hello-vpp
-usr/bin/hello-encode-jpeg
+usr/share/vpl/licensing
+etc/vpl/
