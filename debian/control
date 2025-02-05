@@ -1,7 +1,8 @@
 Source: libvpl
 Section: libs
 Priority: optional
-Maintainer: Timo Aaltonen <tjaalton@debian.org>
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+XSBC-Original-Maintainer: Timo Aaltonen <tjaalton@debian.org>
 Build-Depends: debhelper-compat (= 13),
  cmake,
  libva-dev,
