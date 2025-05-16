@@ -291,6 +291,17 @@ mfxStatus SetConfigImpl(mfxLoader loader, mfxU32 implType, bool bRequire2xGPU) {
             reinterpret_cast<const mfxU8 *>("mfxImplDescription.ImplName"),
             ImplValue);
     }
+    else if (implType == MFX_IMPL_TYPE_STUB_NOFN) {
+        // for stub library without new functions, filter by ImplName
+        ImplValue.Version.Version = (mfxU16)MFX_VARIANT_VERSION;
+        ImplValue.Type            = MFX_VARIANT_TYPE_PTR;
+        ImplValue.Data.Ptr        = (mfxHDL) "Stub Implementation - no fn";
+
+        sts = MFXSetConfigFilterProperty(
+            cfg,
+            reinterpret_cast<const mfxU8 *>("mfxImplDescription.ImplName"),
+            ImplValue);
+    }
     else if (implType == MFX_IMPL_TYPE_SOFTWARE) {
         // for SW, filter by Keywords and ImplType (to exclude stub SW lib)
         ImplValue.Version.Version = (mfxU16)MFX_VARIANT_VERSION;
@@ -444,6 +455,9 @@ mfxStatus SetSingleProperty(mfxLoader loader,
         case MFX_VARIANT_TYPE_F64:
         case MFX_VARIANT_TYPE_PTR:
         case MFX_VARIANT_TYPE_FP16:
+#ifdef ONEVPL_EXPERIMENTAL
+        case MFX_VARIANT_TYPE_QUERY:
+#endif // ONEVPL_EXPERIMENTAL
         case MFX_VARIANT_TYPE_UNSET:
             return MFX_ERR_UNSUPPORTED;
     }
@@ -478,6 +492,9 @@ mfxStatus SetSingleProperty(mfxLoader loader,
         case MFX_VARIANT_TYPE_I32:
         case MFX_VARIANT_TYPE_I64:
         case MFX_VARIANT_TYPE_FP16:
+#ifdef ONEVPL_EXPERIMENTAL
+        case MFX_VARIANT_TYPE_QUERY:
+#endif // ONEVPL_EXPERIMENTAL
         case MFX_VARIANT_TYPE_UNSET:
             return MFX_ERR_UNSUPPORTED;
     }
@@ -514,6 +531,9 @@ mfxStatus SetSingleProperty(mfxLoader loader,
         case MFX_VARIANT_TYPE_F64:
         case MFX_VARIANT_TYPE_PTR:
         case MFX_VARIANT_TYPE_FP16:
+#ifdef ONEVPL_EXPERIMENTAL
+        case MFX_VARIANT_TYPE_QUERY:
+#endif // ONEVPL_EXPERIMENTAL
         case MFX_VARIANT_TYPE_UNSET:
             return MFX_ERR_UNSUPPORTED;
     }
@@ -549,6 +569,9 @@ mfxStatus SetSingleProperty(mfxLoader loader,
         case MFX_VARIANT_TYPE_I32:
         case MFX_VARIANT_TYPE_I64:
         case MFX_VARIANT_TYPE_FP16:
+#ifdef ONEVPL_EXPERIMENTAL
+        case MFX_VARIANT_TYPE_QUERY:
+#endif // ONEVPL_EXPERIMENTAL
         case MFX_VARIANT_TYPE_UNSET:
             return MFX_ERR_UNSUPPORTED;
     }

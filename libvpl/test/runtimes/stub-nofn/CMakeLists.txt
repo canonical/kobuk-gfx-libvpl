@@ -7,7 +7,7 @@
 cmake_minimum_required(VERSION 3.13.0)
 set(DLL_PREFIX "lib")
 file(STRINGS "../stub/version.txt" version_txt)
-project(vplstubrt1x VERSION ${version_txt})
+project(vplstubrt-nofn VERSION ${version_txt})
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(OUTPUT_NAME ${PROJECT_NAME}64)
@@ -22,7 +22,7 @@ endif()
 
 add_library(${PROJECT_NAME} SHARED "")
 
-add_definitions(-DENABLE_STUB_1X)
+add_definitions(-DSKIP_NEW_FUNCTIONS)
 
 if(WIN32)
   # force libxxx style sharedlib name on Windows
@@ -51,11 +51,9 @@ set_target_properties(
 target_sources(${PROJECT_NAME} PRIVATE ../stub/src/stubs.cpp
                                        ../stub/src/config.cpp)
 
-# use .def file without new query function exported because 1.x stub does not
-# have codec/filter props
+# use .def file without new (experimental) functions exported
 if(WIN32)
-  target_sources(${PROJECT_NAME}
-                 PRIVATE ../stub-nofn/src/windows/libvplminrt-nofn.def)
+  target_sources(${PROJECT_NAME} PRIVATE ./src/windows/libvplminrt-nofn.def)
 endif()
 
 find_package(VPL 2.2 REQUIRED COMPONENTS api)
