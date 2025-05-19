@@ -8,6 +8,7 @@
 
 #include <assert.h>
 
+#include <map>
 #include <regex>
 
 // implementation of config context (mfxConfig)
@@ -33,6 +34,7 @@ ConfigCtxVPL::ConfigCtxVPL()
         m_propVar[idx].Version.Version = MFX_VARIANT_VERSION;
         m_propVar[idx].Type            = MFX_VARIANT_TYPE_UNSET;
         m_propVar[idx].Data.U64        = 0;
+        m_propVar[idx].bPropsQuery     = false;
     }
 
     m_parentLoader = nullptr;
@@ -80,7 +82,6 @@ enum PropIdx {
     ePropEnc_CodecID,
     ePropEnc_MaxcodecLevel,
     ePropEnc_BiDirectionalPrediction,
-    ePropEnc_ReportedStats,
     ePropEnc_Profile,
     ePropEnc_MemHandleType,
     ePropEnc_Width,
@@ -126,6 +127,14 @@ enum PropIdx {
     // functions which must report as implemented
     ePropFunc_FunctionName,
 
+#ifdef ONEVPL_EXPERIMENTAL
+    // special query properties, non-filtering
+    ePropQuery_ImplOnly,
+    ePropQuery_AllDec,
+    ePropQuery_AllEnc,
+    ePropQuery_AllVPP,
+#endif
+
     // number of entries (always last)
     eProp_TotalProps
 };
@@ -163,7 +172,6 @@ static const PropVariant PropIdxTab[] = {
     { "ePropEnc_CodecID",                   MFX_VARIANT_TYPE_U32 },
     { "ePropEnc_MaxcodecLevel",             MFX_VARIANT_TYPE_U16 },
     { "ePropEnc_BiDirectionalPrediction",   MFX_VARIANT_TYPE_U16 },
-    { "ePropEnc_ReportedStats",             MFX_VARIANT_TYPE_U16 },
     { "ePropEnc_Profile",                   MFX_VARIANT_TYPE_U32 },
     { "ePropEnc_MemHandleType",             MFX_VARIANT_TYPE_U32 },
     { "ePropEnc_Width",                     MFX_VARIANT_TYPE_PTR },
@@ -203,6 +211,13 @@ static const PropVariant PropIdxTab[] = {
     { "ePropSpecial_DXGIAdapterIndex",      MFX_VARIANT_TYPE_U32 },
 
     { "ePropFunc_FunctionName",             MFX_VARIANT_TYPE_PTR },
+
+#ifdef ONEVPL_EXPERIMENTAL
+    { "ePropQuery_ImplOnly",                MFX_VARIANT_TYPE_U32 },
+    { "ePropQuery_AllDec",                  MFX_VARIANT_TYPE_U32 },
+    { "ePropQuery_AllEnc",                  MFX_VARIANT_TYPE_U32 },
+    { "ePropQuery_AllVPP",                  MFX_VARIANT_TYPE_U32 },
+#endif
 };
 
 // end table formatting
@@ -215,9 +230,95 @@ static_assert((sizeof(PropIdxTab) / sizeof(PropVariant)) == eProp_TotalProps,
 static_assert(NUM_TOTAL_FILTER_PROPS == eProp_TotalProps,
               "NUM_TOTAL_FILTER_PROPS and eProp_TotalProps are misaligned");
 
+#ifdef ONEVPL_EXPERIMENTAL
+
+// clang-format off
+static const std::map<enum PropIdx, char *> PropStringMap {
+    { ePropQuery_ImplOnly,   (char *)"mfxImplDescription" },
+    { ePropQuery_AllDec,     (char *)"mfxImplDescription.mfxDecoderDescription" },
+    { ePropQuery_AllEnc,     (char *)"mfxImplDescription.mfxEncoderDescription" },
+    { ePropQuery_AllVPP,     (char *)"mfxImplDescription.mfxVPPDescription" },
+
+    { ePropDec_CodecID,      (char *)"mfxImplDescription.mfxDecoderDescription.decoder.CodecID" },
+    { ePropEnc_CodecID,      (char *)"mfxImplDescription.mfxEncoderDescription.encoder.CodecID" },
+    { ePropVPP_FilterFourCC, (char *)"mfxImplDescription.mfxVPPDescription.filter.FilterFourCC" },
+};
+// clang-format on
+
+bool ConfigCtxVPL::UpdatePropsQueryConfig(std::list<ConfigCtxVPL *> configCtxList,
+                                          std::vector<mfxQueryProperty> &queryProps) {
+    // disabled by default
+    bool bPropsQuery = false;
+    queryProps.clear();
+
+    auto it = configCtxList.begin();
+    while (it != configCtxList.end()) {
+        ConfigCtxVPL *config = (*it);
+        it++;
+
+        mfxU32 idx;
+        for (idx = 0; idx < eProp_TotalProps; idx++) {
+            // property was not set - skip
+            if (config->m_propVar[idx].Type == MFX_VARIANT_TYPE_UNSET)
+                continue;
+
+            // property type was not OR'd with MFX_VARIANT_TYPE_QUERY - skip
+            if (config->m_propVar[idx].bPropsQuery == false)
+                continue;
+
+            // will push a copy into the vector, and the PropName ptr points to a const string,
+            //   so no explict memory allocation is needed
+            mfxQueryProperty nextProp = {};
+
+            // check if any filter properties from the supported list are configured
+            // if caller OR'd MFX_VARIANT_TYPE_QUERY onto some other property not in PropStringMap, it is ignored here
+            // (but would have already returned an error during MFXSetConfigProperty anyway)
+            auto propString = PropStringMap.find((enum PropIdx)idx);
+            if (propString != PropStringMap.end()) {
+                nextProp.PropName = (mfxU8 *)propString->second;
+
+                nextProp.PropVar.Version = config->m_propVar[idx].Version;
+                nextProp.PropVar.Type    = config->m_propVar[idx].Type;
+                nextProp.PropVar.Data    = config->m_propVar[idx].Data;
+
+                queryProps.push_back(nextProp);
+
+                // at least one property-based query filter is set
+                bPropsQuery = true;
+            }
+        }
+    }
+
+    return bPropsQuery;
+}
+#endif
+
 mfxStatus ConfigCtxVPL::ValidateAndSetProp(mfxI32 idx, mfxVariant value) {
     if (idx < 0 || idx >= eProp_TotalProps)
         return MFX_ERR_NOT_FOUND;
+
+    m_propVar[idx].bPropsQuery = false;
+#ifdef ONEVPL_EXPERIMENTAL
+    mfxU32 queryMask = (mfxU32)MFX_VARIANT_TYPE_QUERY;
+    if (value.Type & queryMask) {
+        // set bPropsQuery flag and clear the bit in value.Type so rest of property processing happens as usual
+        m_propVar[idx].bPropsQuery = true;
+        value.Type = static_cast<mfxVariantType>(((mfxU32)(value.Type)) & (~queryMask));
+    }
+
+    // non-filtering properties which are only valid if MFX_VARIANT_TYPE_QUERY is set
+    if (idx >= ePropQuery_ImplOnly && idx <= ePropQuery_AllVPP) {
+        if (m_propVar[idx].bPropsQuery == false)
+            return MFX_ERR_UNSUPPORTED;
+    }
+
+    // only query-able properties may have MFX_VARIANT_TYPE_QUERY set (table in programming guide)
+    if (m_propVar[idx].bPropsQuery == true) {
+        auto propString = PropStringMap.find((enum PropIdx)idx);
+        if (propString == PropStringMap.end())
+            return MFX_ERR_UNSUPPORTED;
+    }
+#endif
 
     if (value.Type != PropIdxTab[idx].Type)
         return MFX_ERR_UNSUPPORTED;
@@ -321,6 +422,14 @@ mfxStatus ConfigCtxVPL::SetFilterPropertyDec(std::list<std::string> &propParsedS
 
     nextProp = GetNextProp(propParsedString);
 
+#ifdef ONEVPL_EXPERIMENTAL
+    // empty string indicates property-based query for all decoders
+    // for this case Type should be (MFX_VARIANT_TYPE_QUERY | MFX_VARIANT_TYPE_U32) and Data should be 0
+    if (nextProp == "") {
+        return ValidateAndSetProp(ePropQuery_AllDec, value);
+    }
+#endif
+
     // no settable top-level members
     if (nextProp != "decoder")
         return MFX_ERR_NOT_FOUND;
@@ -371,6 +480,14 @@ mfxStatus ConfigCtxVPL::SetFilterPropertyEnc(std::list<std::string> &propParsedS
 
     nextProp = GetNextProp(propParsedString);
 
+#ifdef ONEVPL_EXPERIMENTAL
+    // empty string indicates property-based query for all encoders
+    // for this case Type should be (MFX_VARIANT_TYPE_QUERY | MFX_VARIANT_TYPE_U32) and Data should be 0
+    if (nextProp == "") {
+        return ValidateAndSetProp(ePropQuery_AllEnc, value);
+    }
+#endif
+
     // no settable top-level members
     if (nextProp != "encoder")
         return MFX_ERR_NOT_FOUND;
@@ -386,11 +503,6 @@ mfxStatus ConfigCtxVPL::SetFilterPropertyEnc(std::list<std::string> &propParsedS
     else if (nextProp == "BiDirectionalPrediction") {
         return ValidateAndSetProp(ePropEnc_BiDirectionalPrediction, value);
     }
-#ifdef ONEVPL_EXPERIMENTAL
-    else if (nextProp == "ReportedStats") {
-        return ValidateAndSetProp(ePropEnc_ReportedStats, value);
-    }
-#endif
     else if (nextProp != "encprofile") {
         return MFX_ERR_NOT_FOUND;
     }
@@ -428,6 +540,14 @@ mfxStatus ConfigCtxVPL::SetFilterPropertyVPP(std::list<std::string> &propParsedS
     std::string nextProp;
 
     nextProp = GetNextProp(propParsedString);
+
+#ifdef ONEVPL_EXPERIMENTAL
+    // empty string indicates property-based query for all VPP filters
+    // for this case Type should be (MFX_VARIANT_TYPE_QUERY | MFX_VARIANT_TYPE_U32) and Data should be 0
+    if (nextProp == "") {
+        return ValidateAndSetProp(ePropQuery_AllVPP, value);
+    }
+#endif
 
     // no settable top-level members
     if (nextProp != "filter")
@@ -620,6 +740,14 @@ mfxStatus ConfigCtxVPL::SetFilterProperty(const mfxU8 *name, mfxVariant value) {
     // get next property descriptor
     nextProp = GetNextProp(propParsedString);
 
+#ifdef ONEVPL_EXPERIMENTAL
+    // empty string indicates property-based query for implOnly info (shallow query)
+    // for this case Type should be (MFX_VARIANT_TYPE_QUERY | MFX_VARIANT_TYPE_U32) and Data should be 0
+    if (nextProp == "") {
+        return ValidateAndSetProp(ePropQuery_ImplOnly, value);
+    }
+#endif
+
     // property is a top-level member of mfxImplDescription
     if (nextProp == "Impl") {
         return ValidateAndSetProp(ePropMain_Impl, value);
@@ -759,17 +887,6 @@ mfxStatus ConfigCtxVPL::GetFlatDescriptionsEnc(const mfxImplDescription *libImpl
     EncProfile *encProfile = nullptr;
     EncMemDesc *encMemDesc = nullptr;
 
-#ifdef ONEVPL_EXPERIMENTAL
-    // ReportedStats was added with API 2.7 under ONEVPL_EXPERIMENTAL.
-    // When it is promoted to production API, MFX_ENCODERDESCRIPTION_VERSION should be bumped up
-    //   and we should check mfxEncoderDescription.Version instead to know whether ReportedStats
-    //   is a valid field (taken from reserved[] space).
-    // Until then, best we can do is to check the overall API version for this impl.
-    mfxVersion reqApiVersionReportedStats = {};
-    reqApiVersionReportedStats.Major      = 2;
-    reqApiVersionReportedStats.Minor      = 7;
-#endif
-
     while (codecIdx < libImplDesc->Enc.NumCodecs) {
         EncConfig ec = {};
 
@@ -777,13 +894,6 @@ mfxStatus ConfigCtxVPL::GetFlatDescriptionsEnc(const mfxImplDescription *libImpl
         ec.CodecID                 = encCodec->CodecID;
         ec.MaxcodecLevel           = encCodec->MaxcodecLevel;
         ec.BiDirectionalPrediction = encCodec->BiDirectionalPrediction;
-
-#ifdef ONEVPL_EXPERIMENTAL
-        // see comment above about checking mfxEncoderDescription version once this is moved out
-        //   of experimental API
-        if (libImplDesc->ApiVersion.Version >= reqApiVersionReportedStats.Version)
-            ec.ReportedStats = encCodec->ReportedStats;
-#endif
 
         CHECK_IDX(codecIdx, profileIdx, encCodec->NumProfiles);
 
@@ -1090,14 +1200,6 @@ mfxStatus ConfigCtxVPL::CheckPropsEnc(const mfxVariant cfgPropsAll[],
 
             if ((height.Max > ec.Height.Max) || (height.Min < ec.Height.Min) ||
                 (height.Step < ec.Height.Step))
-                isCompatible = false;
-        }
-
-        if (cfgPropsAll[ePropEnc_ReportedStats].Type != MFX_VARIANT_TYPE_UNSET) {
-            mfxU16 requestedStats = cfgPropsAll[ePropEnc_ReportedStats].Data.U16;
-
-            // ReportedStats is a logical OR of one or more flags: MFX_ENCODESTATS_LEVEL_xxx
-            if ((requestedStats & ec.ReportedStats) != requestedStats)
                 isCompatible = false;
         }
 
